@@ -7,6 +7,7 @@ import subprocess
 
 log_re = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} (?P<level>\S+) (?P<type>\S+) (?P<message>.+)$")
 percent_re = re.compile(r"(?P<percent>\d+\.\d+)%")
+progress_re = re.compile(r"\((?P<done>\d+)/(?P<total>\d+)\)")
 
 def print_json(data):
     print(json.dumps(data))
@@ -51,8 +52,17 @@ class BackupParser(LogParser):
                 progress = float(match.group("percent")) / 100
                 print_json({ "progress": progress })
 
+class CopyParser(LogParser):
+    def annotate_line(self, level, type, message):
+        if type == "SNAPSHOT_COPY":
+            match = progress_re.search(message)
+            if match:
+                progress = float(match.group("done")) / float(match.group("total"))
+                print_json({ "progress": progress })
+
 command_parsers = {
     "backup": BackupParser,
+    "copy": CopyParser,
 }
 
 error_codes = {
