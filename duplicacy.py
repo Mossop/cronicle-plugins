@@ -6,8 +6,6 @@ import json
 import subprocess
 
 log_re = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} (?P<level>\S+) (?P<type>\S+) (?P<message>.+)$")
-percent_re = re.compile(r"(?P<percent>\d+\.\d+)%")
-progress_re = re.compile(r"\((?P<done>\d+)/(?P<total>\d+)\)")
 
 def print_json(data):
     print(json.dumps(data))
@@ -29,7 +27,8 @@ class LogParser:
     def log_line(self, line):
         line_data = self.parse_line(line)
         if line_data:
-            print(line_data["message"])
+            if line_data["level"] != "DEBUG" and line_data["level"] != "TRACE":
+                print(line_data["message"])
             self.annotate_line(line_data["level"], line_data["type"], line_data["message"])
         else:
             print(line)
@@ -45,17 +44,69 @@ class LogParser:
         print_json(response)
 
 class BackupParser(LogParser):
+    def __init__(self):
+        LogParser.__init__(self)
+        self.percent_re = re.compile(r"(?P<percent>\d+\.\d+)%")
+
+        self.stats = {}
+
+        self.stats_names = {
+            "new_files": "New files",
+            "changed_files": "Changed files",
+            "unchanged_files": "Unchanged files",
+            "removed_files": "Removed files",
+            "file_chunks": "File chunks",
+            "metadata_chunks": "Metadata chunks",
+        }
+
+        self.stats_re = {
+            "new_files": re.compile(r"New files: (?P<count>\d+) total, (?P<size>\w+) bytes"),
+            "changed_files": re.compile(r"Changed files: (?P<count>\d+) total, (?P<size>\w+) bytes"),
+            "unchanged_files": re.compile(r"Unchanged files: (?P<count>\d+) total, (?P<size>\w+) bytes"),
+            "removed_files": re.compile(r"Removed files: (?P<count>\d+) total, (?P<size>\w+) bytes"),
+            "file_chunks": re.compile(r"File chunks: \d+ total, \w+ bytes; (?P<count>\d+) new, \w+ bytes, (?P<size>\w+) bytes uploaded"),
+            "metadata_chunks": re.compile(r"Metadata chunks: \d+ total, \w+ bytes; (?P<count>\d+) new, \w+ bytes, (?P<size>\w+) bytes uploaded"),
+        }
+
     def annotate_line(self, level, type, message):
         if type == "UPLOAD_PROGRESS":
-            match = percent_re.search(message)
+            match = self.percent_re.search(message)
             if match:
                 progress = float(match.group("percent")) / 100
                 print_json({ "progress": progress })
+        elif type == "BACKUP_STATS":
+            for key in self.stats_re:
+                match = self.stats_re[key].search(message)
+                if match:
+                    self.stats[key] = { "count": match.group("count"), "size": match.group("size") }
+
+    def complete(self, code):
+        if len(self.stats) > 0:
+            stats = {
+                "table": {
+                    "title": "Backup statistics",
+                    "header": ["Type", "Count", "Size"],
+                    "rows": [],
+                    "caption": "Various useful backup statistics.",
+                },
+            }
+
+            for stat in ["new_files", "changed_files", "unchanged_files", "removed_files", "file_chunks", "metadata_chunks"]:
+                if stat in self.stats:
+                    stats["table"]["rows"].append([self.stats_names[stat], self.stats[stat]["count"], self.stats[stat]["size"]])
+
+            print_json(stats)
+
+        LogParser.complete(self, code)
 
 class CopyParser(LogParser):
+    def __init__(self):
+        LogParser.__init__(self)
+        self.progress_re = re.compile(r"\((?P<done>\d+)/(?P<total>\d+)\)")
+
     def annotate_line(self, level, type, message):
         if type == "SNAPSHOT_COPY":
-            match = progress_re.search(message)
+            match = self.progress_re.search(message)
             if match:
                 progress = float(match.group("done")) / float(match.group("total"))
                 print_json({ "progress": progress })
@@ -74,7 +125,7 @@ error_codes = {
 }
 
 def build_args(duplicacy, command, arguments):
-    args = [duplicacy, "-log", command]
+    args = [duplicacy, "-debug", "-log", command]
     if command == "backup" or command == "check":
         args.append("-stats")
     if len(arguments) > 0:
