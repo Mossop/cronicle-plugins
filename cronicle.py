@@ -1,6 +1,7 @@
 import sys
 import json
 import inspect
+import subprocess
 from urlparse import urljoin, urlparse
 from httplib import HTTPConnection, HTTPException
 
@@ -14,6 +15,14 @@ class CronicleError(Exception):
 
     def __str__(self):
         return "%d: %s" % (self.code, self.description)
+
+class ProcessLogParser:
+    def parse_line(self, line):
+        pass
+
+    def process_complete(self, code):
+        if code != 0:
+            raise CronicleError(code, "Process exited with exit code %d." & code)
 
 class CroniclePlugin:
     def __init__(self, stdin = sys.stdin, stdout = sys.stdout):
@@ -49,6 +58,20 @@ class CroniclePlugin:
 
         self.log(json.dumps(result))
 
+    def exec_process(self, args, parser, cwd = None, stdin = None):
+        process = subprocess.Popen(args,
+                                   cwd=cwd,
+                                   stdin=stdin,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT)
+
+        for line in process.stdout:
+            parser.parse_line(line.strip())
+
+        code = process.wait()
+        parser.process_complete(code)
+        return code
+
     def log(self, line):
         self.stdout.write("%s\n" % line)
         self.stdout.flush()
@@ -62,6 +85,20 @@ class CroniclePlugin:
 
     def set_perf(self, name, time):
         self.perf[name] = time
+
+    def log_table(self, title, headers, rows, caption = None):
+        stats = {
+            "table": {
+                "title": title,
+                "header": headers,
+                "rows": rows,
+            },
+        }
+
+        if caption:
+            stats["table"]["caption"] = caption
+
+        self.log_json(stats)
 
 class CronicleJob:
     def __init__(self, api, id):
