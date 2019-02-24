@@ -22,7 +22,7 @@ class ProcessLogParser:
 
     def process_complete(self, code):
         if code != 0:
-            raise CronicleError(code, "Process exited with exit code %d." & code)
+            raise CronicleError(code, "Process exited with exit code %d." % code)
 
 class CroniclePlugin:
     def __init__(self, stdin = sys.stdin, stdout = sys.stdout):
