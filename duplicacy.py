@@ -1,9 +1,6 @@
 #! /usr/bin/env python
 
 import re
-import sys
-import json
-import subprocess
 from cronicle import CronicleError, CroniclePlugin, ProcessLogParser
 
 log_re = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} (?P<level>\S+) (?P<type>\S+) (?P<message>.+)$")
