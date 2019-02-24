@@ -20,6 +20,7 @@ class CroniclePlugin:
         self.stdin = stdin
         self.stdout = stdout
         self.perf = {}
+        self.last_progress = 0.0
 
     def execute(self, params):
         pass
@@ -56,7 +57,8 @@ class CroniclePlugin:
         self.log(json.dumps(data))
 
     def set_progress(self, progress):
-        self.log_json({ "progress": progress })
+        if progress != self.last_progress:
+            self.log_json({ "progress": progress })
 
     def set_perf(self, name, time):
         self.perf[name] = time
