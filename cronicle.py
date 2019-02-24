@@ -50,6 +50,7 @@ class CroniclePlugin:
 
     def log(self, line):
         self.stdout.write("%s\n" % line)
+        self.stdout.flush()
 
     def log_json(self, data):
         self.log(json.dumps(data))
