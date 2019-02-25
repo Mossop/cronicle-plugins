@@ -14,10 +14,10 @@ class SpeedTestPlugin(CroniclePlugin):
             args.append("--no-download")
         json = self.exec_process(args, JsonParser())
 
-        if "upload" in json:
+        if params["upload"]:
             self.set_perf("upload", BITS_PER_GB / json["upload"])
 
-        if "download" in json:
+        if params["download"]:
             self.set_perf("download", BITS_PER_GB / json["download"])
 
 if __name__ == "__main__":
