@@ -41,5 +41,4 @@ class SequencePlugin(CroniclePlugin):
         self.log("Event %s completed successfully." % event.title)
 
 if __name__ == "__main__":
-    plugin = SequencePlugin()
-    plugin.start()
+    SequencePlugin()

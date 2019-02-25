@@ -12,7 +12,7 @@ class DuplicacyLogParser(ProcessLogParser):
     def process_complete(self, code):
         if code in error_codes:
             raise CronicleError(code, error_codes[code])
-        ProcessLogParser.process_complete(self, code)
+        return ProcessLogParser.process_complete(self, code)
 
     def parse_duplicacy_line(self, line):
         match = log_re.match(line)
@@ -71,8 +71,7 @@ class BackupParser(DuplicacyLogParser):
 
     def process_complete(self, code):
         if code != 0:
-            DuplicacyLogParser.process_complete(self, code)
-            return
+            return DuplicacyLogParser.process_complete(self, code)
 
         if len(self.stats) > 0:
             rows = []
@@ -126,5 +125,4 @@ class DuplicacyPlugin(CroniclePlugin):
         self.exec_process(args, parser, cwd=params["repository"])
 
 if __name__ == "__main__":
-    plugin = DuplicacyPlugin()
-    plugin.start()
+    DuplicacyPlugin()
