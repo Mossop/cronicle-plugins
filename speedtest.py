@@ -7,7 +7,7 @@ BITS_PER_GB = 8 * 1024 * 1024 * 1024
 
 class SpeedTestPlugin(CroniclePlugin):
     def execute(self, params):
-        args = [params["speedtest-cli"], "--json"]
+        args = [params["speedtest"], "--json"]
         if not params["upload"]:
             args.append("--no-upload")
         if not params["download"]:
