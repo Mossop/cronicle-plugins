@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 
 import re
-from cronicle import CronicleError, CroniclePlugin, JsonParser
+from cronicle import CronicleError, CroniclePlugin
+from cronicle.plugin import JsonParser
 
 BITS_PER_GB = 8 * 1024 * 1024 * 1024
 

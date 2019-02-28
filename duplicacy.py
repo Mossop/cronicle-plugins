@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 
 import re
-from cronicle import CronicleError, CroniclePlugin, ProcessLogParser
+from cronicle import CronicleError, CroniclePlugin
+from cronicle.plugin import ProcessLogParser
 
 log_re = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} (?P<level>\S+) (?P<type>\S+) (?P<message>.+)$")
 
