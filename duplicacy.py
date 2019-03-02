@@ -22,14 +22,17 @@ class DuplicacyLogParser(ProcessLogParser):
         else:
             return None
 
+    def log_line(self, level, type, message):
+        if level != "DEBUG" and level != "TRACE":
+            self.plugin.log(message)
+
     def annotate_line(self, level, type, message):
         pass
 
     def parse_line(self, line):
         line_data = self.parse_duplicacy_line(line)
         if line_data:
-            if line_data["level"] != "DEBUG" and line_data["level"] != "TRACE":
-                self.plugin.log(line_data["message"])
+            self.log_line(line_data["level"], line_data["type"], line_data["message"])
             self.annotate_line(line_data["level"], line_data["type"], line_data["message"])
         else:
             print(line)
@@ -58,6 +61,11 @@ class BackupParser(DuplicacyLogParser):
             "file_chunks": re.compile(r"File chunks: \d+ total, \w+ bytes; (?P<count>\d+) new, \w+ bytes, (?P<size>\w+) bytes uploaded"),
             "metadata_chunks": re.compile(r"Metadata chunks: \d+ total, \w+ bytes; (?P<count>\d+) new, \w+ bytes, (?P<size>\w+) bytes uploaded"),
         }
+
+    def log_line(self, level, type, message):
+        if type == "UPLOAD_PROGRESS":
+            return
+        DuplicacyLogParser.log_line(self, level, type, message)
 
     def annotate_line(self, level, type, message):
         if type == "UPLOAD_PROGRESS":
