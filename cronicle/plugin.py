@@ -70,12 +70,15 @@ class CroniclePlugin:
     def exec_process(self, args, parser, cwd = None):
         process = subprocess.Popen(args,
                                    cwd=cwd,
+                                   bufsize=0,
                                    stdin=None,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT)
 
-        for line in process.stdout:
+        line = process.stdout.readline()
+        while line:
             parser.parse_line(line.strip())
+            line = process.stdout.readline()
 
         code = process.wait()
         return parser.process_complete(code)
