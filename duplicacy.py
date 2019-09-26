@@ -35,7 +35,7 @@ class DuplicacyLogParser(ProcessLogParser):
             self.log_line(line_data["level"], line_data["type"], line_data["message"])
             self.annotate_line(line_data["level"], line_data["type"], line_data["message"])
         else:
-            print(line)
+            self.plugin.log(line)
 
 class BackupParser(DuplicacyLogParser):
     def __init__(self, plugin):
@@ -101,9 +101,43 @@ class CopyParser(DuplicacyLogParser):
             if match:
                 self.plugin.set_progress(float(match.group("done")) / float(match.group("total")))
 
+class CheckParser(DuplicacyLogParser):
+    def __init__(self, plugin):
+        DuplicacyLogParser.__init__(self, plugin)
+        self.total_revisions = 1
+        self.current_revision = 0
+        self.initial_re = re.compile(r"""\d+ snapshots and (\d+) revisions""")
+        self.revision_re = re.compile(r""".*chunks referenced by snapshot.*\((\d+)/(\d+)\)$""")
+        self.file_re = re.compile(r"""\((\d+)/(\d+)\)$""")
+
+    def log_revision_progress(self, current, total):
+        self.total_revisions = total
+        self.current_revision = current
+        self.log_file_progress(0, 1)
+
+    def log_file_progress(self, current, total):
+        progress = (self.current_revision + float(current) / total) / self.total_revisions
+        self.plugin.set_progress(progress)
+
+    def annotate_line(self, level, type, message):
+        if type == "SNAPSHOT_CHECK":
+            match = self.revision_re.match(message)
+            if match is not None:
+                self.log_revision_progress(int(match.group(1)), int(match.group(2)))
+            else:
+                match = self.initial_re.match(message)
+                if match is not None:
+                    self.total_revisions = int(match.group(1))
+                    print("TOTAL REVISIONS %d", self.total_revisions)
+        elif type == "SNAPSHOT_VERIFY":
+            match = self.file_re.match(message)
+            if match is not None:
+                self.log_file_progress(int(match.group(1)), int(match.group(2)))
+
 command_parsers = {
     "backup": BackupParser,
     "copy": CopyParser,
+    "check": CheckParser,
 }
 
 error_codes = {
